@@ -15,10 +15,12 @@
 
   .header-emoji {
     text-shadow: 1px 1px 2px red, 0 0 1em blue, 0 0 0.2em blue;
+    transition: text-shadow 0.35s ease;
   }
 
   span.header-emoji:hover {
     text-shadow: 1px 1px 5px red, 0 0 0.5em black, 0 0 0.2em orangered;
+    transition: text-shadow 0.35s ease;
   }
 
   /* https://dev.to/afif/i-made-100-css-loaders-for-your-next-project-4eje */
