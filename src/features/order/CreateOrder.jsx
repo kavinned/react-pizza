@@ -1,12 +1,13 @@
 import { Form, redirect, useActionData, useNavigation } from "react-router-dom";
 import { createOrder } from "../../services/apiRestaurant";
 import Button from "../../ui/Button";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { clearCart, getCart, getTotalCartPrice } from "../cart/cartSlice";
 import EmptyCart from "../cart/EmptyCart";
 import store from "../../store";
 import { formatCurrency } from "../../utils/helpers";
-import { useState } from "react";
+import React, { useState } from "react";
+import { fetchAddress } from "../user/userSlice";
 
 // https://uibakery.io/regex-library/phone-number
 const isValidPhone = (str) =>
@@ -18,9 +19,17 @@ function CreateOrder() {
     const [withPriority, setWithPriority] = useState(false);
     const navigation = useNavigation();
     const isSubmitting = navigation.state === "submitting";
+    const dispatch = useDispatch();
 
     // All hooks need to be called before any conditional returns
-    const username = useSelector((state) => state.user.username);
+    const {
+        username,
+        status,
+        position,
+        address,
+        error: errorAddress,
+    } = useSelector((state) => state.user);
+    const isLoadingAddress = status === "loading";
     const formErrors = useActionData();
     const cart = useSelector(getCart);
     const totalCartPrice = useSelector(getTotalCartPrice);
@@ -65,7 +74,7 @@ function CreateOrder() {
                     </div>
                 </div>
 
-                <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center relative">
                     <label className="sm:basis-40">Address</label>
                     <div className="grow">
                         <input
@@ -73,8 +82,29 @@ function CreateOrder() {
                             type="text"
                             name="address"
                             required
+                            disabled={isLoadingAddress}
+                            defaultValue={address}
                         />
+                        {status === "error" && (
+                            <p className="mt-2 rounded-md bg-red-100 p-2 text-xs text-red-700">
+                                {errorAddress}
+                            </p>
+                        )}
                     </div>
+                    {!position.latitude && !position.longitude && (
+                        <span className="absolute top-[-3px] right-[3px] md:right-[5px] md:top-[5px]">
+                            <Button
+                                disabled={isLoadingAddress}
+                                type="small"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    dispatch(fetchAddress());
+                                }}
+                            >
+                                Get Position
+                            </Button>
+                        </span>
+                    )}
                 </div>
 
                 <div className="mb-12 flex items-center gap-5">
@@ -86,6 +116,7 @@ function CreateOrder() {
                         value={withPriority}
                         onChange={(e) => setWithPriority(e.target.checked)}
                     />
+
                     <label htmlFor="priority" className="font-medium">
                         Want to give your order priority?
                     </label>
@@ -96,6 +127,15 @@ function CreateOrder() {
                         type="hidden"
                         name="cart"
                         value={JSON.stringify(cart)}
+                    />
+                    <input
+                        type="hidden"
+                        name="positon"
+                        value={
+                            position.longitude && position.latitude
+                                ? `${position.latitude},${position.longitude}`
+                                : ""
+                        }
                     />
                     <Button disabled={isSubmitting} type="primary">
                         {isSubmitting
